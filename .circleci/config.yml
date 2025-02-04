@@ -15,20 +15,41 @@ jobs:
       - run:
           name: Build Docker image
           command: docker build -t my-node-app .
-  # test:
-  #   executor: node-executor
-  #   steps:
-  #     - checkout
-  #     - run:
-  #         name: Install dependencies
-  #         command: npm install
-  #     - run:
-  #         name: Run tests
-  #         command: npm test
+
+  test-docker-image:
+    docker:
+      - image: docker:latest
+    steps:
+      - setup_remote_docker
+      - run:
+          name: Run Docker container
+          command: docker run -d -p 8080:8080 --name my-node-app-container my-node-app
+      - run:
+          name: Test Docker container
+          command: |
+            sleep 10 # wait for the container to be fully up and running
+            curl --fail http://localhost:8080/expected-route
+
+  push-docker-image:
+    docker:
+      - image: docker:latest
+    steps:
+      - setup_remote_docker
+      - run:
+          name: Login to Docker Hub
+          command: echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+      - run:
+          name: Push Docker image
+          command: docker push my-node-app
 
 workflows:
   version: 2
   test:
     jobs:
-      - test
       - build-docker-image
+      - test-docker-image:
+          requires:
+            - build-docker-image
+      - push-docker-image:
+          requires:
+            - test-docker-image
