@@ -19,6 +19,9 @@ jobs:
           name: Run Docker container
           command: docker run -d -p 8080:8080 --name my-node-app-container my-node-app
       - run:
+          name: Install curl
+          command: apk add --no-cache curl
+      - run:
           name: Test Docker container
           command: |
             sleep 10 # wait for the container to be fully up and running
